@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Plus, Pencil, Trash2, BookOpen, Search, Loader } from 'lucide-react'
+import { Plus, Pencil, Trash2, BookOpen, Loader } from 'lucide-react'
 import { useCatalog } from '@/hooks/useCatalog'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -12,7 +12,7 @@ import type { VegetableCatalog } from '@/types'
 
 interface Props { householdId: string }
 
-const empty: Omit<VegetableCatalog, 'id' | 'household_id' | 'created_at'> & { spacing_inches: number | null } = {
+const empty: Omit<VegetableCatalog, 'id' | 'household_id' | 'created_at'> = {
   name: '',
   days_to_germinate: 7,
   days_to_harvest: 60,
@@ -22,44 +22,51 @@ const empty: Omit<VegetableCatalog, 'id' | 'household_id' | 'created_at'> & { sp
   notes: null
 }
 
-interface TrefleResult {
-  id: number
-  common_name: string
-  scientific_name?: string
-  duration?: string
-  edible?: boolean
-  average_height?: { cm?: number }
-  growth_months?: number[]
-  bloom_months?: number[]
-}
-
-async function searchTrefle(query: string): Promise<TrefleResult[]> {
-  if (!query.trim()) return []
-  try {
-    const res = await fetch('/api/search-trefle', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ query })
-    })
-    const data = await res.json()
-    return data.data?.slice(0, 5) || []
-  } catch (err) {
-    console.error('Trefle search failed:', err)
-    toast.error('Could not search Trefle')
-    return []
-  }
-}
+const SEED_DATA: Array<Omit<VegetableCatalog, 'id' | 'household_id' | 'created_at'>> = [
+  // Direct sow NOW
+  { name: 'Peas', days_to_germinate: 7, days_to_harvest: 60, spacing_inches: 3, companion_plants: 'Sunflowers, squash (Three Sisters)', bolt_info: 'N/A - cool season', notes: 'Frost hardy. Direct sow NOW. Use teepee trellis. Needs cold to germinate.' },
+  { name: 'Spinach', days_to_germinate: 5, days_to_harvest: 40, spacing_inches: 6, companion_plants: 'Any vegetable', bolt_info: 'Bolts in heat - plant in shade edges', notes: 'Direct sow NOW. Ready in 3-6 weeks. Plant in shadier edges near birch.' },
+  { name: 'Mesclun Mix', days_to_germinate: 5, days_to_harvest: 20, spacing_inches: 8, companion_plants: 'Any vegetable', bolt_info: 'Ready in 20 days before bolting', notes: 'Direct sow NOW. Fastest win - ready to eat in 3 weeks. Great for kids!' },
+  { name: 'Arugula', days_to_germinate: 5, days_to_harvest: 30, spacing_inches: 6, companion_plants: 'Any vegetable', bolt_info: 'Bolts quickly in heat', notes: 'Direct sow NOW. Plant in shade edges. Peppery flavor.' },
+  { name: 'Kale', days_to_germinate: 5, days_to_harvest: 50, spacing_inches: 18, companion_plants: 'Brassicas, herbs', bolt_info: 'Slow to bolt - frost improves flavor', notes: 'Direct sow NOW. Cold hardy. Plant in shadier edges.' },
+  { name: 'Mustard', days_to_germinate: 5, days_to_harvest: 45, spacing_inches: 6, companion_plants: 'Any vegetable', bolt_info: 'Bolts in heat', notes: 'Direct sow NOW. Peppery. Prefers cooler weather.' },
+  { name: 'Lettuce', days_to_germinate: 5, days_to_harvest: 50, spacing_inches: 8, companion_plants: 'Any vegetable', bolt_info: 'Bolts in heat - long daylight triggers bolting', notes: 'Direct sow NOW. Plant in shade edges. Lasts longer before bolting.' },
+  // Indoor start
+  { name: 'Tomato', days_to_germinate: 7, days_to_harvest: 70, spacing_inches: 24, companion_plants: 'Basil, parsley, carrot', bolt_info: 'Heat lover - plant in center bed', notes: 'Start indoors NOW. Transplant after May 15. Center bed real estate.' },
+  { name: 'Cherry Tomato', days_to_germinate: 7, days_to_harvest: 65, spacing_inches: 18, companion_plants: 'Basil', bolt_info: 'Heat lover', notes: 'Start indoors NOW. Great for kids! Pick your own section.' },
+  { name: 'Pepper', days_to_germinate: 10, days_to_harvest: 75, spacing_inches: 18, companion_plants: 'Basil, onion', bolt_info: 'Heat lover - plant in center bed', notes: 'Start indoors NOW. Slow grower. Transplant after May 15.' },
+  { name: 'Eggplant', days_to_germinate: 8, days_to_harvest: 70, spacing_inches: 24, companion_plants: 'Thyme, basil', bolt_info: 'Heat lover - full sun', notes: 'Start indoors NOW. Needs warmth. Slow to mature.' },
+  { name: 'Brussels Sprouts', days_to_germinate: 5, days_to_harvest: 90, spacing_inches: 24, companion_plants: 'Brassicas, herbs', bolt_info: 'Cool season - harvest after first frost for sweetness', notes: 'Start indoors NOW. Fall crop. Frost improves taste.' },
+  { name: 'Broccoli', days_to_germinate: 5, days_to_harvest: 60, spacing_inches: 18, companion_plants: 'Brassicas, herbs', bolt_info: 'Cool season - bolt in heat', notes: 'Start indoors NOW. Prefers cool weather.' },
+  { name: 'Cabbage', days_to_germinate: 5, days_to_harvest: 70, spacing_inches: 18, companion_plants: 'Brassicas', bolt_info: 'Cool season crop', notes: 'Start indoors NOW. Dense heads need space.' },
+  // After May 15
+  { name: 'Cucumber', days_to_germinate: 7, days_to_harvest: 60, spacing_inches: 12, companion_plants: 'Radish, nasturtium', bolt_info: 'Repels beetles', notes: 'Direct sow after May 15. Use teepee trellis for vertical growth.' },
+  { name: 'Asparagus Beans', days_to_germinate: 7, days_to_harvest: 55, spacing_inches: 4, companion_plants: 'Corn, squash (Three Sisters)', bolt_info: 'Nitrogen fixer - dramatic and fast', notes: 'Direct sow after May 15. Use teepee. Great for kids!' },
+  { name: 'Yard-Long Beans', days_to_germinate: 10, days_to_harvest: 70, spacing_inches: 4, companion_plants: 'Corn, squash', bolt_info: 'Nitrogen fixer', notes: 'Direct sow after May 15. Teepee support. Asian variety.' },
+  { name: 'Zucchini', days_to_germinate: 5, days_to_harvest: 50, spacing_inches: 36, companion_plants: 'Corn, beans (Three Sisters ground cover)', bolt_info: 'Heat lover - prolific producer', notes: 'Direct sow after May 15. One per center bed. Spreads wide.' },
+  { name: 'Sugar Snap Peas', days_to_germinate: 7, days_to_harvest: 65, spacing_inches: 3, companion_plants: 'Sunflowers, squash', bolt_info: 'Cool season', notes: 'Direct sow NOW or after peas. Sweet pods. Great for kids!' },
+  // Herbs
+  { name: 'Rosemary', days_to_germinate: 14, days_to_harvest: 120, spacing_inches: 24, companion_plants: 'Cabbage, beans', bolt_info: 'Perennial - bring indoors for winter', notes: 'Start indoors NOW. Slow to germinate. Woody perennial.' },
+  { name: 'Lavender', days_to_germinate: 14, days_to_harvest: 180, spacing_inches: 18, companion_plants: 'Most plants', bolt_info: 'Attracts pollinators', notes: 'Start indoors NOW. Slow. Fragrant companion flower.' },
+  { name: 'Peppermint', days_to_germinate: 10, days_to_harvest: 60, spacing_inches: 12, companion_plants: 'Deters pests', bolt_info: 'INVASIVE - pot only! Will take over bed', notes: 'Pot only - never in ground. Spreads via rhizomes.' },
+  // Flowers
+  { name: 'Chamomile', days_to_germinate: 7, days_to_harvest: 60, spacing_inches: 12, companion_plants: 'All vegetables - strengthens neighbors', bolt_info: 'Attracts beneficial insects', notes: 'Direct sow NOW. Cold tolerant. Between pavers and edges.' },
+  { name: 'Bachelor Button', days_to_germinate: 7, days_to_harvest: 50, spacing_inches: 6, companion_plants: 'All vegetables', bolt_info: 'Attracts predatory wasps', notes: 'Direct sow NOW. Scatter throughout bed. Fast blooming.' },
+  { name: 'California Poppy', days_to_germinate: 7, days_to_harvest: 40, spacing_inches: 6, companion_plants: 'All vegetables', bolt_info: 'Repels some pests', notes: 'Direct sow NOW. Bright color. Cold tolerant.' },
+  { name: 'Calendula', days_to_germinate: 7, days_to_harvest: 45, spacing_inches: 12, companion_plants: 'All vegetables - repels aphids', bolt_info: 'Edible petals', notes: 'Scatter throughout. Bright orange. Repels aphids.' },
+  { name: 'Butterfly Weed', days_to_germinate: 14, days_to_harvest: 90, spacing_inches: 18, companion_plants: 'None - host plant', bolt_info: 'Monarch butterfly host plant', notes: 'Start indoors or direct sow. Supports monarchs.' },
+  { name: 'Sunflower', days_to_germinate: 7, days_to_harvest: 80, spacing_inches: 12, companion_plants: 'Beans, squash (Three Sisters corn)', bolt_info: 'Wind shelter - north end of bed', notes: 'Direct sow after May 15. Plant north end - won\'t shade. Tall barrier.' },
+  { name: 'Sweet Alyssum', days_to_germinate: 7, days_to_harvest: 40, spacing_inches: 6, companion_plants: 'All plants', bolt_info: 'Attracts pollinators', notes: 'Direct sow NOW. Between pavers. Ground cover flowers.' },
+]
 
 export default function Catalog({ householdId }: Props) {
   const { vegetables, addVegetable, updateVegetable, deleteVegetable } = useCatalog(householdId)
   const [open, setOpen] = useState(false)
   const [editing, setEditing] = useState<VegetableCatalog | null>(null)
   const [form, setForm] = useState(empty)
-  const [searchQuery, setSearchQuery] = useState('')
-  const [searchResults, setSearchResults] = useState<TrefleResult[]>([])
-  const [searching, setSearching] = useState(false)
+  const [seeding, setSeeding] = useState(false)
 
-  function openAdd() { setEditing(null); setForm(empty); setSearchQuery(''); setSearchResults([]); setOpen(true) }
+  function openAdd() { setEditing(null); setForm(empty); setOpen(true) }
   function openEdit(v: VegetableCatalog) {
     setEditing(v)
     setForm({
@@ -71,28 +78,23 @@ export default function Catalog({ householdId }: Props) {
       bolt_info: v.bolt_info,
       notes: v.notes
     })
-    setSearchQuery('')
-    setSearchResults([])
     setOpen(true)
   }
 
-  async function handleSearch() {
-    if (!searchQuery.trim()) return
-    setSearching(true)
-    const results = await searchTrefle(searchQuery)
-    setSearchResults(results)
-    setSearching(false)
-  }
-
-  function selectTrefleResult(result: TrefleResult) {
-    setForm(f => ({
-      ...f,
-      name: result.common_name || '',
-      days_to_harvest: result.growth_months ? Math.max(...result.growth_months) * 30 : 60,
-      notes: result.edible ? 'Edible variety' : f.notes
-    }))
-    setSearchResults([])
-    setSearchQuery('')
+  async function handleSeedCatalog() {
+    if (!confirm(`Add ${SEED_DATA.length} vegetables from the Victory Garden plan?`)) return
+    setSeeding(true)
+    try {
+      for (const plant of SEED_DATA) {
+        await addVegetable.mutateAsync({ ...plant, household_id: householdId })
+      }
+      toast.success(`Seeded catalog with ${SEED_DATA.length} plants!`)
+    } catch (error) {
+      console.error('Seed error:', error)
+      toast.error('Could not seed catalog')
+    } finally {
+      setSeeding(false)
+    }
   }
 
   async function handleSubmit(e: React.FormEvent) {
@@ -128,9 +130,17 @@ export default function Catalog({ householdId }: Props) {
           <h1 className="text-2xl font-bold">Vegetable Catalog</h1>
           <p className="text-muted-foreground">Your growable vegetable library</p>
         </div>
-        <Button onClick={openAdd}>
-          <Plus className="h-4 w-4" />Add vegetable
-        </Button>
+        <div className="flex gap-2">
+          {vegetables.data?.length === 0 && (
+            <Button onClick={handleSeedCatalog} disabled={seeding} variant="outline">
+              {seeding ? <Loader className="h-4 w-4 animate-spin mr-2" /> : null}
+              Seed default plants
+            </Button>
+          )}
+          <Button onClick={openAdd}>
+            <Plus className="h-4 w-4" />Add vegetable
+          </Button>
+        </div>
       </div>
 
       {vegetables.data?.length === 0 && (
@@ -187,39 +197,6 @@ export default function Catalog({ householdId }: Props) {
             <DialogTitle>{editing ? `Edit ${editing.name}` : 'Add vegetable'}</DialogTitle>
           </DialogHeader>
           <form onSubmit={handleSubmit} className="space-y-4 mt-2">
-            {!editing && (
-              <div className="space-y-2 p-3 bg-muted rounded-lg">
-                <Label className="text-sm font-medium">Search Trefle Database (optional)</Label>
-                <div className="flex gap-2">
-                  <Input
-                    placeholder="e.g. tomato, carrot, lettuce…"
-                    value={searchQuery}
-                    onChange={e => setSearchQuery(e.target.value)}
-                    onKeyDown={e => e.key === 'Enter' && handleSearch()}
-                  />
-                  <Button type="button" size="sm" variant="outline" onClick={handleSearch} disabled={searching}>
-                    {searching ? <Loader className="h-4 w-4 animate-spin" /> : <Search className="h-4 w-4" />}
-                  </Button>
-                </div>
-                {searchResults.length > 0 && (
-                  <div className="space-y-2 mt-3">
-                    <p className="text-xs text-muted-foreground">Click a result to import:</p>
-                    {searchResults.map(result => (
-                      <button
-                        key={result.id}
-                        type="button"
-                        onClick={() => selectTrefleResult(result)}
-                        className="w-full text-left p-2 rounded border border-border hover:bg-accent transition-colors text-sm"
-                      >
-                        <div className="font-medium">{result.common_name}</div>
-                        {result.scientific_name && <div className="text-xs text-muted-foreground italic">{result.scientific_name}</div>}
-                        {result.edible && <div className="text-xs text-green-600">✓ Edible</div>}
-                      </button>
-                    ))}
-                  </div>
-                )}
-              </div>
-            )}
             <div className="space-y-1.5">
               <Label>Name *</Label>
               <Input placeholder="e.g. Tomato" value={form.name} onChange={e => setForm(f => ({ ...f, name: e.target.value }))} required />
