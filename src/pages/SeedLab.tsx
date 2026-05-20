@@ -12,13 +12,11 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { trayStatusLabel, trayStatusColor, daysSince } from '@/lib/utils'
 import { toast } from 'sonner'
 import type { TrayCellWithDetails } from '@/types'
-import { useQueryClient } from '@tanstack/react-query'
 import { supabase } from '@/lib/supabase'
 
 interface Props { householdId: string }
 
 export default function SeedLab({ householdId }: Props) {
-  const qc = useQueryClient()
   const { trays, addTray, deleteTray, seedCell, updateCellStatus, clearCell } = useSeedLab(householdId)
   const { vegetables } = useCatalog(householdId)
   const [trayOpen, setTrayOpen] = useState(false)
