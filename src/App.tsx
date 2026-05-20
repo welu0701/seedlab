@@ -10,6 +10,7 @@ import BedDetail from '@/pages/BedDetail'
 import HydroSystem from '@/pages/HydroSystem'
 import SeedLab from '@/pages/SeedLab'
 import Catalog from '@/pages/Catalog'
+import Settings from '@/pages/Settings'
 
 function LoadingScreen() {
   return (
@@ -36,6 +37,7 @@ export default function App() {
         <Route path="/hydro" element={<HydroSystem householdId={householdId!} />} />
         <Route path="/seedlab" element={<SeedLab householdId={householdId!} />} />
         <Route path="/catalog" element={<Catalog householdId={householdId!} />} />
+        <Route path="/settings" element={<Settings householdId={householdId!} />} />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Route>
     </Routes>

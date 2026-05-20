@@ -3,6 +3,13 @@
 -- Run this in Supabase SQL Editor (Dashboard → SQL Editor → New query)
 -- ============================================================
 
+-- Migrations tracker
+create table if not exists public._migrations (
+  id uuid primary key default gen_random_uuid(),
+  name text not null unique,
+  applied_at timestamptz default now()
+);
+
 -- Profiles (one per auth user)
 create table public.profiles (
   id uuid primary key default gen_random_uuid(),
@@ -35,6 +42,9 @@ create table public.vegetable_catalog (
   name text not null,
   days_to_germinate integer not null default 7,
   days_to_harvest integer not null default 60,
+  spacing_inches integer,
+  companion_plants text,
+  bolt_info text,
   notes text,
   created_at timestamptz default now()
 );

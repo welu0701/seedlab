@@ -30,6 +30,9 @@ export interface VegetableCatalog {
   name: string
   days_to_germinate: number
   days_to_harvest: number
+  spacing_inches: number | null
+  companion_plants: string | null
+  bolt_info: string | null
   notes: string | null
   created_at: string
 }

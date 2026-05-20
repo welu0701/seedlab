@@ -1,5 +1,5 @@
 import { NavLink } from 'react-router-dom'
-import { LayoutDashboard, Rows3, Droplets, Sprout, BookOpen, LogOut } from 'lucide-react'
+import { LayoutDashboard, Rows3, Droplets, Sprout, BookOpen, Settings, LogOut } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { useAuth } from '@/hooks/useAuth'
 import { Button } from '@/components/ui/button'
@@ -10,6 +10,7 @@ const links = [
   { to: '/hydro', icon: Droplets, label: 'Hydroponics' },
   { to: '/seedlab', icon: Sprout, label: 'Seed Lab' },
   { to: '/catalog', icon: BookOpen, label: 'Catalog' },
+  { to: '/settings', icon: Settings, label: 'Settings' },
 ]
 
 export function Sidebar() {

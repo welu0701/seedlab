@@ -1,0 +1,8 @@
+{
+  "buildCommand": "npm run build",
+  "outputDirectory": "dist",
+  "env": {
+    "VITE_SUPABASE_URL": "@seedlab_supabase_url",
+    "VITE_SUPABASE_ANON_KEY": "@seedlab_supabase_anon_key"
+  }
+}

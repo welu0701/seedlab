@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Plus, Pencil, Trash2, BookOpen } from 'lucide-react'
+import { Plus, Pencil, Trash2, BookOpen, Search, Loader } from 'lucide-react'
 import { useCatalog } from '@/hooks/useCatalog'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -12,19 +12,87 @@ import type { VegetableCatalog } from '@/types'
 
 interface Props { householdId: string }
 
-const empty = { name: '', days_to_germinate: 7, days_to_harvest: 60, notes: '' }
+const empty: Omit<VegetableCatalog, 'id' | 'household_id' | 'created_at'> & { spacing_inches: number | null } = {
+  name: '',
+  days_to_germinate: 7,
+  days_to_harvest: 60,
+  spacing_inches: null,
+  companion_plants: null,
+  bolt_info: null,
+  notes: null
+}
+
+interface TrefleResult {
+  id: number
+  common_name: string
+  scientific_name?: string
+  duration?: string
+  edible?: boolean
+  average_height?: { cm?: number }
+  growth_months?: number[]
+  bloom_months?: number[]
+}
+
+async function searchTrefle(query: string): Promise<TrefleResult[]> {
+  if (!query.trim()) return []
+  try {
+    const res = await fetch('/api/search-trefle', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ query })
+    })
+    const data = await res.json()
+    return data.data?.slice(0, 5) || []
+  } catch (err) {
+    console.error('Trefle search failed:', err)
+    toast.error('Could not search Trefle')
+    return []
+  }
+}
 
 export default function Catalog({ householdId }: Props) {
   const { vegetables, addVegetable, updateVegetable, deleteVegetable } = useCatalog(householdId)
   const [open, setOpen] = useState(false)
   const [editing, setEditing] = useState<VegetableCatalog | null>(null)
   const [form, setForm] = useState(empty)
+  const [searchQuery, setSearchQuery] = useState('')
+  const [searchResults, setSearchResults] = useState<TrefleResult[]>([])
+  const [searching, setSearching] = useState(false)
 
-  function openAdd() { setEditing(null); setForm(empty); setOpen(true) }
+  function openAdd() { setEditing(null); setForm(empty); setSearchQuery(''); setSearchResults([]); setOpen(true) }
   function openEdit(v: VegetableCatalog) {
     setEditing(v)
-    setForm({ name: v.name, days_to_germinate: v.days_to_germinate, days_to_harvest: v.days_to_harvest, notes: v.notes ?? '' })
+    setForm({
+      name: v.name,
+      days_to_germinate: v.days_to_germinate,
+      days_to_harvest: v.days_to_harvest,
+      spacing_inches: v.spacing_inches,
+      companion_plants: v.companion_plants,
+      bolt_info: v.bolt_info,
+      notes: v.notes
+    })
+    setSearchQuery('')
+    setSearchResults([])
     setOpen(true)
+  }
+
+  async function handleSearch() {
+    if (!searchQuery.trim()) return
+    setSearching(true)
+    const results = await searchTrefle(searchQuery)
+    setSearchResults(results)
+    setSearching(false)
+  }
+
+  function selectTrefleResult(result: TrefleResult) {
+    setForm(f => ({
+      ...f,
+      name: result.common_name || '',
+      days_to_harvest: result.growth_months ? Math.max(...result.growth_months) * 30 : 60,
+      notes: result.edible ? 'Edible variety' : f.notes
+    }))
+    setSearchResults([])
+    setSearchQuery('')
   }
 
   async function handleSubmit(e: React.FormEvent) {
@@ -99,6 +167,13 @@ export default function Catalog({ householdId }: Props) {
                   <span>Days to harvest</span>
                   <span className="font-medium text-foreground">{v.days_to_harvest}d</span>
                 </div>
+                {v.spacing_inches && (
+                  <div className="flex justify-between">
+                    <span>Spacing</span>
+                    <span className="font-medium text-foreground">{v.spacing_inches}"</span>
+                  </div>
+                )}
+                {v.companion_plants && <p className="text-xs mt-2"><span className="font-medium">Companions:</span> {v.companion_plants}</p>}
                 {v.notes && <p className="text-xs mt-2 italic">{v.notes}</p>}
               </div>
             </CardContent>
@@ -107,13 +182,46 @@ export default function Catalog({ householdId }: Props) {
       </div>
 
       <Dialog open={open} onOpenChange={setOpen}>
-        <DialogContent>
+        <DialogContent className="max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>{editing ? `Edit ${editing.name}` : 'Add vegetable'}</DialogTitle>
           </DialogHeader>
           <form onSubmit={handleSubmit} className="space-y-4 mt-2">
+            {!editing && (
+              <div className="space-y-2 p-3 bg-muted rounded-lg">
+                <Label className="text-sm font-medium">Search Trefle Database (optional)</Label>
+                <div className="flex gap-2">
+                  <Input
+                    placeholder="e.g. tomato, carrot, lettuce…"
+                    value={searchQuery}
+                    onChange={e => setSearchQuery(e.target.value)}
+                    onKeyDown={e => e.key === 'Enter' && handleSearch()}
+                  />
+                  <Button type="button" size="sm" variant="outline" onClick={handleSearch} disabled={searching}>
+                    {searching ? <Loader className="h-4 w-4 animate-spin" /> : <Search className="h-4 w-4" />}
+                  </Button>
+                </div>
+                {searchResults.length > 0 && (
+                  <div className="space-y-2 mt-3">
+                    <p className="text-xs text-muted-foreground">Click a result to import:</p>
+                    {searchResults.map(result => (
+                      <button
+                        key={result.id}
+                        type="button"
+                        onClick={() => selectTrefleResult(result)}
+                        className="w-full text-left p-2 rounded border border-border hover:bg-accent transition-colors text-sm"
+                      >
+                        <div className="font-medium">{result.common_name}</div>
+                        {result.scientific_name && <div className="text-xs text-muted-foreground italic">{result.scientific_name}</div>}
+                        {result.edible && <div className="text-xs text-green-600">✓ Edible</div>}
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
             <div className="space-y-1.5">
-              <Label>Name</Label>
+              <Label>Name *</Label>
               <Input placeholder="e.g. Tomato" value={form.name} onChange={e => setForm(f => ({ ...f, name: e.target.value }))} required />
             </div>
             <div className="grid grid-cols-2 gap-4">
@@ -127,8 +235,20 @@ export default function Catalog({ householdId }: Props) {
               </div>
             </div>
             <div className="space-y-1.5">
-              <Label>Notes (optional)</Label>
-              <Textarea placeholder="Growing tips, preferred conditions…" value={form.notes} onChange={e => setForm(f => ({ ...f, notes: e.target.value }))} rows={2} />
+              <Label>Spacing (inches) — optional</Label>
+              <Input type="number" min={1} placeholder="Distance between plants" value={form.spacing_inches || ''} onChange={e => setForm(f => ({ ...f, spacing_inches: e.target.value ? Number(e.target.value) : null }))} />
+            </div>
+            <div className="space-y-1.5">
+              <Label>Companion plants — optional</Label>
+              <Input placeholder="e.g. Basil, Marigolds" value={form.companion_plants || ''} onChange={e => setForm(f => ({ ...f, companion_plants: e.target.value || null }))} />
+            </div>
+            <div className="space-y-1.5">
+              <Label>Bolt sensitivity — optional</Label>
+              <Textarea placeholder="When does it bolt? How to manage…" value={form.bolt_info || ''} onChange={e => setForm(f => ({ ...f, bolt_info: e.target.value || null }))} rows={2} />
+            </div>
+            <div className="space-y-1.5">
+              <Label>Notes — optional</Label>
+              <Textarea placeholder="Growing tips, preferred conditions…" value={form.notes || ''} onChange={e => setForm(f => ({ ...f, notes: e.target.value || null }))} rows={2} />
             </div>
             <Button type="submit" className="w-full" disabled={addVegetable.isPending || updateVegetable.isPending}>
               {editing ? 'Save changes' : 'Add to catalog'}
