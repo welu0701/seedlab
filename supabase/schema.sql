@@ -229,7 +229,7 @@ create policy "users can read own profile" on public.profiles for select using (
 create policy "users can update own profile" on public.profiles for update using (user_id = auth.uid());
 
 -- Households
-create policy "members can read household" on public.households for select using (is_household_member(id));
+create policy "authenticated can read households" on public.households for select using (auth.uid() is not null);
 create policy "members can update household" on public.households for update using (is_household_member(id));
 create policy "authenticated users can create household" on public.households for insert with check (auth.uid() is not null);
 

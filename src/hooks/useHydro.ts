@@ -62,7 +62,7 @@ export function useHydro(householdId?: string) {
 
   const slots = useQuery({
     queryKey: ['hydro-slots', householdId],
-    enabled: !!householdId,
+    enabled: !!householdId && !!systems.data?.length,
     queryFn: async () => {
       const systemIds = systems.data?.map(s => s.id) ?? []
       if (!systemIds.length) return []
@@ -74,7 +74,6 @@ export function useHydro(householdId?: string) {
       if (error) throw error
       return data as HydroSlotWithDetails[]
     },
-    enabled: !!systems.data?.length,
   })
 
   const assignSlot = useMutation({

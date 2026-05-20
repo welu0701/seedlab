@@ -19,8 +19,9 @@ export default function HouseholdSetup({ userId }: { userId: string }) {
     setLoading(true)
     try {
       await createHousehold.mutateAsync({ name, userId })
-    } catch {
-      toast.error('Could not create household')
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : JSON.stringify(err)
+      toast.error(`Could not create household: ${msg}`)
     } finally {
       setLoading(false)
     }
