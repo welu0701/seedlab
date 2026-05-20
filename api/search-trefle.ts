@@ -12,8 +12,13 @@ export default async (req: VercelRequest, res: VercelResponse) => {
   }
 
   try {
+    const apiKey = process.env.TREFLE_API_KEY
+    if (!apiKey) {
+      return res.status(500).json({ error: 'Trefle API key not configured' })
+    }
+
     const response = await fetch(
-      `https://trefle.io/api/v1/plants/search?q=${encodeURIComponent(query)}`
+      `https://trefle.io/api/v1/plants/search?q=${encodeURIComponent(query)}&token=${apiKey}`
     )
     const data = await response.json()
     return res.json(data)
